@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>激活码 API 测试</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .result.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .result.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .test-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .test-btn {
+      padding: 10px;
+      background: #f0f0f0;
+      color: #333;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .test-btn:hover {
+      background: #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 激活码 API 测试工具</h1>
+    
+    <div class="form-group">
+      <label>API 地址</label>
+      <input type="text" id="apiUrl" placeholder="https://your-project.vercel.app" value="">
+    </div>
+    
+    <div class="form-group">
+      <label>激活码</label>
+      <input type="text" id="code" placeholder="HORSE-2026-XXXX-XXXX" value="">
+    </div>
+    
+    <div class="form-group">
+      <label>操作</label>
+      <select id="action" style="width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;">
+        <option value="verify">验证（不激活）</option>
+        <option value="activate" selected>激活</option>
+      </select>
+    </div>
+    
+    <button onclick="testAPI()">🚀 测试 API</button>
+    
+    <div class="test-buttons">
+      <button class="test-btn" onclick="quickTest('verify')">✅ 快速测试：验证</button>
+      <button class="test-btn" onclick="quickTest('activate')">🔓 快速测试：激活</button>
+      <button class="test-btn" onclick="quickTest('invalid')">❌ 快速测试：无效码</button>
+      <button class="test-btn" onclick="quickTest('used')">🔒 快速测试：已使用</button>
+    </div>
+    
+    <div id="result"></div>
+  </div>
+
+  <script>
+    // 生成设备ID
+    function getDeviceId() {
+      let deviceId = localStorage.getItem('test_device_id');
+      if (!deviceId) {
+        deviceId = 'TEST-DEVICE-' + Date.now();
+        localStorage.setItem('test_device_id', deviceId);
+      }
+      return deviceId;
+    }
+
+    async function testAPI() {
+      const apiUrl = document.getElementById('apiUrl').value.trim();
+      const code = document.getElementById('code').value.trim();
+      const action = document.getElementById('action').value;
+      const resultDiv = document.getElementById('result');
+      
+      if (!apiUrl) {
+        resultDiv.className = 'result error';
+        resultDiv.textContent = '❌ 请输入 API 地址';
+        return;
+      }
+      
+      if (!code) {
+        resultDiv.className = 'result error';
+        resultDiv.textContent = '❌ 请输入激活码';
+        return;
+      }
+      
+      resultDiv.className = 'result';
+      resultDiv.textContent = '⏳ 正在请求...';
+      
+      try {
+        const response = await fetch(`${apiUrl}/api/verify`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            code: code,
+            action: action,
+            deviceId: getDeviceId()
+          })
+        });
+        
+        const result = await response.json();
+        
+        resultDiv.className = result.success ? 'result success' : 'result error';
+        resultDiv.textContent = JSON.stringify(result, null, 2);
+        
+      } catch (e) {
+        resultDiv.className = 'result error';
+        resultDiv.textContent = '❌ 请求失败:\n' + e.message + '\n\n请检查：\n1. API 地址是否正确\n2. 是否已部署到 Vercel\n3. 网络连接是否正常';
+      }
+    }
+
+    function quickTest(type) {
+      const apiUrl = document.getElementById('apiUrl').value.trim();
+      if (!apiUrl) {
+        alert('请先输入 API 地址');
+        return;
+      }
+      
+      switch(type) {
+        case 'verify':
+          document.getElementById('code').value = 'HORSE-2026-TEST-CODE';
+          document.getElementById('action').value = 'verify';
+          break;
+        case 'activate':
+          document.getElementById('code').value = 'HORSE-2026-TEST-CODE';
+          document.getElementById('action').value = 'activate';
+          break;
+        case 'invalid':
+          document.getElementById('code').value = 'HORSE-2026-INVALID-CODE';
+          document.getElementById('action').value = 'activate';
+          break;
+        case 'used':
+          document.getElementById('code').value = 'HORSE-2026-TEST-CODE';
+          document.getElementById('action').value = 'activate';
+          break;
+      }
+      
+      testAPI();
+    }
+
+    // 从 URL 参数读取 API 地址
+    const urlParams = new URLSearchParams(window.location.search);
+    const apiUrlParam = urlParams.get('api');
+    if (apiUrlParam) {
+      document.getElementById('apiUrl').value = apiUrlParam;
+    }
+  </script>
+</body>
+</html>
+
